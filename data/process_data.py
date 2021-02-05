@@ -1,17 +1,69 @@
 import sys
-
+import numpy as np
+import pandas as pd
+from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
-    pass
-
+    """
+    Loads message and categories
+    Input: 
+        messages_filepath: path to messages.csv 
+        categories_filepath: path to categories.csv
+    Output:
+        df: Joined dataset of messages and categories 
+    """
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
+    df = pd.merge(messages, categories, how='outer', on=['id'])
+    return df
 
 def clean_data(df):
-    pass
-
+    '''
+        Input:
+        df: Merged dataset in load_data
+        Output:
+        df: Dataset after cleaning process
+    '''
+    # create a dataframe of the 36 individual category columns
+    categories = df['categories'].str.split(';',expand=True) 
+    # select the first row of the categories dataframe
+    row = categories.iloc[0]
+    # In first row [0], separate the string and the value by '-' using .split(), then using lambda x: x[0], take the first string, and replace "_" with " "
+    category_colnames = row.str.split('-').apply(lambda x:x[0].replace("_", " "))
+    # rename the columns of `categories` using category_colnames    
+    categories.columns = category_colnames
+    
+    for column in categories:
+        '''
+        In: Unclean data
+        Out: Clean data  
+        '''
+        # set each value to be the last character of the string
+        categories[column] = categories[column].str[-1]
+        
+        # convert column from string to numeric
+        categories[column] = categories[column].astype(int)
+        
+        # converting number greater than 1 to 1 to fit multioutputclassification
+        categories[column] = categories[column].apply(lambda x: 1 if x > 1 else x)
+    
+    # drop the original categories column from `df`
+    df = df.drop(['categories'], axis=1)
+    
+    # concatenate the original data frame with the new `categories` data frame
+    df = pd.concat([df, categories], axis=1)
+    
+    # drop duplicates
+    df = df.drop_duplicates(subset=['message'])
+    return df
 
 def save_data(df, database_filename):
-    pass  
-
+    '''
+    df: Clean data
+    database_filename: Path of SQL database stored
+    '''
+    engine = f'sqlite:///{database_filename}'
+    df.to_sql('Disaster_Response_Database', engine, index=False, if_exists='replace')
 
 def main():
     if len(sys.argv) == 4:

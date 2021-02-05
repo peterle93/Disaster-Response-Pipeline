@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, TfidfVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report, f1_score
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multioutput import MultiOutputClassifier
@@ -33,16 +33,14 @@ def load_data(database_filepath):
         Y: categories
     category_names: names of categories
     '''    
-    # load data from database
-    table_name = 'disaster_table'
-    engine = create_engine('sqlite:///DisasterResponse.db')
-    df = pd.read_sql_table(table_name, con=engine)
-
+    table_name = 'Disaster_Response_Database'
+    engine = create_engine('sqlite:///' + database_filepath)
+    df = pd.read_sql_table(table_name = table_name, con = engine)
     X = df['message'] # reads message column
     Y = df.iloc[:,4:] # reads all rows, all column starting at [4] ->
     category_names = Y.columns
    
-   return X, Y, category_names
+    return X, Y, category_names
 
 def tokenize(text):
     '''
@@ -72,24 +70,23 @@ def tokenize(text):
 
     return clean_tokens
 
-
 def build_model():
     '''
     ML pipeline that takes the message column and passes it through the classfier
     to place into the most accurate category of the 36 in dataset
     Returns:
         cv3: the machine learning model
-    '''
-    # Best pipeline settings and parameters
+    '''    
     pipeline3 = Pipeline([
         ('vect', CountVectorizer()),
         ('clf', MultiOutputClassifier(AdaBoostClassifier()))])
     
-	parameters3 = {'clf__estimator__n_estimators': [10, 40], 
-            	'clf__estimator__learning_rate': [1,2]}
+    parameters3 = {'clf__estimator__n_estimators':[10, 40], 
+    'clf__estimator__learning_rate': [1,2]}
 
-    cv3 = GridSearchCV(pipeline, param_grid=parameters, verbose=3)    
+    cv3 = GridSearchCV(pipeline3, param_grid = parameters3, verbose=3)
     return cv3
+
 
 def evaluate_model(model, X_test, Y_test, category_names):
     '''
@@ -100,18 +97,19 @@ def evaluate_model(model, X_test, Y_test, category_names):
         category_names: list of categories for messages for classification
     '''
     Y_pred3 = model.predict(X_test)
-
+    
     # cv3 best parameters
-    print(classification_report(Y_test, Y_pred3, target_names=Y.columns)) 
+    print(classification_report(Y_test, Y_pred3, target_names = category_names)) 
     pass
-
+    
 def save_model(model, model_filepath):
     '''
     Saves best parameters of ML model as pickle file
         model: ML pipeline model
         model_filepath: file path for saving model
     '''
-    pickle.dump(cv3, open(model_filepath, 'wb'))
+    pickle.dump(model.best_estimator_, open(model_filepath, 'wb'))
+    pass
 
 
 def main():
@@ -144,4 +142,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-   

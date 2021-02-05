@@ -11,7 +11,6 @@ from plotly.graph_objs import Bar
 import joblib
 from sqlalchemy import create_engine
 
-
 app = Flask(__name__)
 
 def tokenize(text):
@@ -27,12 +26,10 @@ def tokenize(text):
 
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
-df = pd.read_sql_table('disaster_table', engine)
+df = pd.read_sql_table('Disaster_Response_Database', engine)
 
 # load model
 model = joblib.load("../models/classifier.pkl")
-
-print("ok")
 
 # index webpage displays cool visuals and receives user input text for model
 @app.route('/')
@@ -44,12 +41,12 @@ def index():
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
     
-    message_counts = df[df.columns[4:]].sum()
-    message_names = list(df[df.columns[4:]])
-    
+    category_counts = df[df.columns[4:]].sum() #msg counts in each column
+    category_names = list(df[df.columns[4:]]) #all names of categories
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
+    # Graphs
     graphs = [
         {
             'data': [
@@ -69,30 +66,24 @@ def index():
                 }
             }
         },
-            # Messasge Categories in the dataset
         {
-
-           'data': [
+            'data': [
                 Bar(
-                    x = message_names,
-                    y = message_counts
-               )
+                    x = category_names,
+                    y = category_counts
+                )
+            ],
 
-           ],
-
-           'layout': {
-                'title': 'Message categories in the dataset ',
-                'yaxis': {
+            'layout': {
+                'title': 'Categories Vs Frequency of messages',
+                'xaxis': {
                     'title': "Count"
                 },
-                'xaxis': {
-                    'title': "Message categories",
-                    'tickangle': 35
-                    
-
+                'yaxis': {
+                    'title': "Frequency of messages"
                 }
             }
-        }   
+        }
     ]
     
     # encode plotly graphs in JSON
@@ -120,10 +111,9 @@ def go():
         classification_result=classification_results
     )
 
-
 def main():
-    app.run(host='0.0.0.0', port=3001, debug=True)
+    app.run(host='127.0.0.1', port=3001, debug=True)
 
 
 if __name__ == '__main__':
-    main() 
+    main()
