@@ -8,7 +8,7 @@ import pickle
 # Import nltk libraries
 import nltk
 nltk.download(['punkt', 'wordnet', 'stopwords'])
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, RegexpTokenizer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 
@@ -57,17 +57,16 @@ def tokenize(text):
         
     # Normalizes and tokenizes (removes punctuations and converts to lowercase)
     tokens = nltk.word_tokenize(re.sub(r"[^a-zA-Z0-9]", " ", text.lower()))
-    
-    # Remove stopwords
-    tokens = [t for t in tokens if t not in stopwords.words('english')]
 
-    # lemmatize and remove stop words
+    tokenizer = RegexpTokenizer(r'\w+')
+    tokens = tokenizer.tokenize(text)
+    
+    # lemmatization
+    lemmatizer = WordNetLemmatizer()
     clean_tokens = []
     for tok in tokens:
         clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-        if clean_tok not in stopwords.words("english"):
-            clean_tokens.append(clean_tok)
-
+        clean_tokens.append(clean_tok)
     return clean_tokens
 
 def build_model():
@@ -75,18 +74,28 @@ def build_model():
     ML pipeline that takes the message column and passes it through the classfier
     to place into the most accurate category of the 36 in dataset
     Returns:
-        cv3: the machine learning model
+        model: the machine learning model
     '''    
-    pipeline3 = Pipeline([
-        ('vect', CountVectorizer()),
-        ('clf', MultiOutputClassifier(AdaBoostClassifier()))])
+    modelp = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
+        ('clf', MultiOutputClassifier(AdaBoostClassifier()))
+        ])
     
-    parameters3 = {'clf__estimator__n_estimators':[10, 40], 
-    'clf__estimator__learning_rate': [1,2]}
+    # hyper-parameter grid
+    parameters = {#'vect__ngram_range': ((1, 1), (1, 2)),
+                  #'vect__max_df': (0.75, 1.0),
+                  'clf__estimator__n_estimators': (50,100)
+                  }
 
-    cv3 = GridSearchCV(pipeline3, param_grid = parameters3, verbose=3)
-    return cv3
+    # create model
+    model = GridSearchCV(estimator=modelp,
+            param_grid=parameters,
+            verbose=3,
+            #n_jobs = -1,
+            cv=2)
 
+    return model
 
 def evaluate_model(model, X_test, Y_test, category_names):
     '''
@@ -96,10 +105,11 @@ def evaluate_model(model, X_test, Y_test, category_names):
         Y_test: categories for messages of X_test
         category_names: list of categories for messages for classification
     '''
-    Y_pred3 = model.predict(X_test)
+    # Get results and add them to a dataframe.
+    y_pred = model.predict(X_test)
     
-    # cv3 best parameters
-    print(classification_report(Y_test, Y_pred3, target_names = category_names)) 
+    # best parameters
+    print(classification_report(Y_test, y_pred, target_names = category_names)) 
     pass
     
 def save_model(model, model_filepath):

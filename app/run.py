@@ -1,6 +1,8 @@
+# Import Libraries
 import json
 import plotly
 import pandas as pd
+import numpy as np
 
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
@@ -24,12 +26,16 @@ def tokenize(text):
 
     return clean_tokens
 
-# load data
+
+# Load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
 df = pd.read_sql_table('Disaster_Response_Database', engine)
 
-# load model
+# Load model
 model = joblib.load("../models/classifier.pkl")
+
+print("ok")
+
 
 # index webpage displays cool visuals and receives user input text for model
 @app.route('/')
@@ -41,13 +47,25 @@ def index():
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
     
-    category_counts = df[df.columns[4:]].sum() #msg counts in each column
-    category_names = list(df[df.columns[4:]]) #all names of categories
+    category_names = df.iloc[:, 4:].columns
+    category_boolean = (df.iloc[:, 4:] != 0).sum().values
+    
+    # Show distribution of different category
+    category = list(df.columns[4:])
+    category_counts = []
+    for column_name in category:
+        category_counts.append(np.sum(df[column_name]))
+
+    # extract data exclude related
+    categories = df.iloc[:,4:]
+    categories_mean = categories.mean().sort_values(ascending=False)[1:11]
+    categories_names = list(categories_mean.index)
+    
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
-    # Graphs
     graphs = [
+            # GRAPH 1 - genre graph
         {
             'data': [
                 Bar(
@@ -66,21 +84,44 @@ def index():
                 }
             }
         },
+            # GRAPH 2 - category graph    
         {
             'data': [
                 Bar(
-                    x = category_names,
-                    y = category_counts
+                    x=category_names,
+                    y=category_boolean
                 )
             ],
 
             'layout': {
-                'title': 'Categories Vs Frequency of messages',
-                'xaxis': {
-                    'title': "Count"
-                },
+                'title': 'Distribution of Message Categories',
                 'yaxis': {
-                    'title': "Frequency of messages"
+                    'title': "Count",
+                    'automargin': True
+                },
+                'xaxis': {
+                    'title': "Category",
+                    'tickangle': 35,
+                    'automargin': True
+                }
+            }
+        },
+                # GRAPH 3 - Top 10 Message Categories  
+        {
+            'data': [
+                Bar(
+                    x=categories_names,
+                    y=categories_mean
+                )
+            ],
+
+            'layout': {
+                'title': 'Top 10 Message Categories',
+                'yaxis': {
+                    'title': "Percentage"
+                },
+                'xaxis': {
+                    'title': "Categories"
                 }
             }
         }
@@ -110,6 +151,7 @@ def go():
         query=query,
         classification_result=classification_results
     )
+
 
 def main():
     app.run(host='127.0.0.1', port=3001, debug=True)
