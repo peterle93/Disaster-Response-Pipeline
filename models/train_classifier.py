@@ -1,63 +1,72 @@
+"""
+Sample Script Execution:
+> python train_classifier.py ../data/DisasterResponse.db classifier.pkl
+
+Arguments:
+    1. SQLite db path -> pre-processed data
+    2. pickle file name -> to save ML model
+"""
 # Import libraries
 import sys
-import re
-import numpy as np
 import pandas as pd
-import pickle
+import numpy as np
 
-# Import nltk libraries
 import nltk
-nltk.download(['punkt', 'wordnet', 'stopwords'])
+nltk.download(['punkt', 'wordnet'])
 from nltk.tokenize import word_tokenize, RegexpTokenizer
 from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
-
-# import sklearn libraries
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, TfidfVectorizer
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import classification_report, f1_score
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from sklearn.multioutput import MultiOutputClassifier
 
 from sqlalchemy import create_engine
+import re
+
+from sklearn.pipeline import Pipeline,FeatureUnion
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier,AdaBoostClassifier
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.metrics import precision_recall_fscore_support, make_scorer, accuracy_score, f1_score, fbeta_score, classification_report
+
+import pickle
+
+import warnings
+warnings.filterwarnings("ignore")
 
 def load_data(database_filepath):
-    ''' 
-    function loads data from sql database
-        database_filepath: path of database
-    Returns:
-        X: message column
-        Y: categories
-    category_names: names of categories
-    '''    
-    table_name = 'Disaster_Response_Database'
+    """
+    Load database filepath and return data
+    
+    Arguments:
+        database_filepath -> path to SQLite db
+    Output:
+        X -> feature DataFrame
+        Y -> label DataFrame
+        category_names -> used for data visualization (app)
+    """
     engine = create_engine('sqlite:///' + database_filepath)
-    df = pd.read_sql_table(table_name = table_name, con = engine)
-    X = df['message'] # reads message column
-    Y = df.iloc[:,4:] # reads all rows, all column starting at [4] ->
+    df = pd.read_sql_table('DisasterResponsetbl', con=engine)
+    X = df['message']
+    Y = df.iloc[:,4:]
     category_names = Y.columns
-   
     return X, Y, category_names
 
+
 def tokenize(text):
-    '''
-    function to tokenize the text
-        Input: text
-        Output: list of clean tokens 
-    '''
-    url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    """
+    Tokenize and transform input text to clean text
     
-    # Detect urls with url_regex
+    Arguments:
+        text -> list of text messages
+    Output:
+        clean_tokens -> clean tokenized text
+    """
+    url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
     detected_urls = re.findall(url_regex, text)
     for url in detected_urls:
         text = text.replace(url, "urlplaceholder")
-        
-    # Normalizes and tokenizes (removes punctuations and converts to lowercase)
-    tokens = nltk.word_tokenize(re.sub(r"[^a-zA-Z0-9]", " ", text.lower()))
-
+    
+    # Remove punctuation
     tokenizer = RegexpTokenizer(r'\w+')
     tokens = tokenizer.tokenize(text)
     
@@ -69,13 +78,15 @@ def tokenize(text):
         clean_tokens.append(clean_tok)
     return clean_tokens
 
+
 def build_model():
-    '''
-    ML pipeline that takes the message column and passes it through the classfier
-    to place into the most accurate category of the 36 in dataset
-    Returns:
-        model: the machine learning model
-    '''    
+    """
+    Build Model pipeline
+    
+    Output is a tuned model that process text messages
+    and apply model for scoring.
+    """
+
     modelp = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -83,43 +94,67 @@ def build_model():
         ])
     
     # hyper-parameter grid
-    parameters = {#'vect__ngram_range': ((1, 1), (1, 2)),
-                  #'vect__max_df': (0.75, 1.0),
-                  'clf__estimator__n_estimators': (50,100)
+    parameters = {'clf__estimator__n_estimators': (50,100)
                   }
 
     # create model
     model = GridSearchCV(estimator=modelp,
             param_grid=parameters,
             verbose=3,
-            #n_jobs = -1,
             cv=2)
 
     return model
 
+def get_results(Y_test, y_pred):
+    """
+    Function to generate model results in dataframe format
+    
+    Arguments:
+        y_test -> test labels
+        y_pred -> predicted labels
+    """
+    report = pd.DataFrame(columns=['Category', 'f_score', 'precision', 'recall'])
+    num = 0
+    for colnm in Y_test.columns:
+        precision, recall, f_score, support = precision_recall_fscore_support(Y_test[colnm], y_pred[:,num], average='weighted')
+        report.at[num+1, 'Category'] = colnm
+        report.at[num+1, 'f_score'] = f_score
+        report.at[num+1, 'precision'] = precision
+        report.at[num+1, 'recall'] = recall
+        num += 1
+    print('Aggregated f_score:', report['f_score'].mean())
+    print('Aggregated precision:', report['precision'].mean())
+    print('Aggregated recall:', report['recall'].mean())
+    print('Accuracy:', np.mean(Y_test.values == y_pred))
+    return report
+
+
 def evaluate_model(model, X_test, Y_test, category_names):
-    '''
-    Provides a classifcation report (precision, recall and f1 score) for all categories
-        model: model to be evaluated
-        X_test: test dataset (messages)
-        Y_test: categories for messages of X_test
-        category_names: list of categories for messages for classification
-    '''
+    """
+    Evaluate model results
+    
+    Arguments:
+        model -> Scikit ML Pipeline
+        X_test -> test features
+        Y_test -> test labels
+        category_names -> label names
+    """
     # Get results and add them to a dataframe.
     y_pred = model.predict(X_test)
-    
-    # best parameters
-    print(classification_report(Y_test, y_pred, target_names = category_names)) 
-    pass
-    
+    results = get_results(Y_test, y_pred)
+    print(results)
+
+
 def save_model(model, model_filepath):
-    '''
-    Saves best parameters of ML model as pickle file
-        model: ML pipeline model
-        model_filepath: file path for saving model
-    '''
-    pickle.dump(model.best_estimator_, open(model_filepath, 'wb'))
-    pass
+    """
+    Save Model to pickle file
+        
+    Arguments:
+        model -> GridSearchCV or Scikit Pipeline object
+        model_filepath -> destination path to save .pkl file
+    
+    """
+    pickle.dump(model, open(model_filepath, 'wb'))
 
 
 def main():

@@ -26,17 +26,30 @@ The web app is able to classify the messages sent and to place them into the mos
 By entering a message and pressing 'Classify message', the message will be classified into the all the categories listed that are suitable for its description.
 
 ## Instructions: <a name="instructions"></a>
-1. Run the following commands in the project's root directory to set up your database and model.
 
-    - To run ETL pipeline that cleans data and stores in database
-        `python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv data/DisasterResponse.db`
-    - To run ML pipeline that trains classifier and saves
-        `python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl`
+### Data Cleaning
 
-2. Run the following command in the app's directory to run your web app.
-    `python run.py`
+Run the following command to execute ETL pipeline that cleans and stores data in database:
 
-3. Go to http://0.0.0.0:3001/
+`python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv data/DisasterResponse.db`
+
+The first two arguments are input data and the third argument is the output SQLite Database name to store the cleaned data. 
+
+### Training Classifier
+
+Run the following command to execute ML pipeline that trains classifier and saves:
+
+`python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl`
+
+Loads data from SQLite database to train the model and save the model to a pickle file.
+
+### Starting the web app
+
+Run the following command in the app's directory to run the web app.
+
+`python run.py`
+
+This will start the web app and will direct you to http://127.0.0.1:3001/ where you can enter messages and get classification results.
 
 ## Libraries: <a name="libraries"></a>
 Requires Python 3.5+
