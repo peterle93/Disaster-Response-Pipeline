@@ -25,6 +25,8 @@ The web app is able to classify the messages sent and to place them into the mos
 
 By entering a message and pressing 'Classify message', the message will be classified into the all the categories listed that are suitable for its description.
 
+![Disaster Response Pipeline](https://raw.githubusercontent.com/peterle93/Disaster-Response-Pipeline/master/images/Disaster1.png)
+
 ## Instructions: <a name="instructions"></a>
 
 ### Data Cleaning
