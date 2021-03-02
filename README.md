@@ -56,7 +56,6 @@ This will start the web app and will direct you to http://127.0.0.1:3001/ where 
 ## Libraries: <a name="libraries"></a>
 Requires Python 3.5+
 
-Machine Learning Libraries
 - Numpy
 - Pandas
 - Scikit Learn
