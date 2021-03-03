@@ -8,6 +8,7 @@
 
 ## Project Motivation <a name="motivation"></a>
 ### Disaster Response Pipeline Project
+
 The goal of the project is to classify legitimate messages sent during disaster events from a dataset provided by Figure Eight. 
 It requires us to build machine learning pipeline to categorize emergency messages according to the needs communicated by the sender on a real time basis.
 The specific machine model is a Natural Language Processing (NLP) model.
