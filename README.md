@@ -74,7 +74,7 @@ Web App and Data Visualization
 1. app
 - run.py: Launches the web app 
 2. data 
-- DisasterResponse.db: Contains the SQL database 
+- DisasterResponse.db: Contains the SQLite database 
 - ETL Pipeline Preparation.ipynb: Extract, Transfer, Load Pipeline preparation code
 - disaster_categories.csv: categories dataset
 - disaster_messages.csv: messages dataset
