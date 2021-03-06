@@ -84,6 +84,8 @@ Web App and Data Visualization
 - ML Pipeline Preparation.ipynb: Machine learning preparation code
 - train_classifier.py: classification code 
 4. images - contains the images and gifs for presentation
+5. procfile - Mechanism for declaring what commands are run by your application’s dynos on the Heroku platform
+6. requirements.txt - required libraries needed for app
     
 ## Acknowledgements <a name="acknowledgements"></a>
 
