@@ -86,6 +86,7 @@ Web App and Data Visualization
 4. images - contains the images and gifs for presentation
 5. procfile - Mechanism for declaring what commands are run by your application’s dynos on the Heroku platform
 6. requirements.txt - required libraries needed for app
+7. README.txt
     
 ## Acknowledgements <a name="acknowledgements"></a>
 
