@@ -90,7 +90,7 @@ Web App and Data Visualization
 6. requirements.txt 
 - required libraries needed for app
 7. README.txt
-- Description of project, instructions and libraries
+- Description of the project, instructions and libraries
     
 ## Acknowledgements <a name="acknowledgements"></a>
 
