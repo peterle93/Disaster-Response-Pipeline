@@ -93,6 +93,5 @@ Web App and Data Visualization
 - Description of the project, instructions and libraries
     
 ## Acknowledgements <a name="acknowledgements"></a>
-
 1. https://www.figure-eight.com/
 2. https://www.udacity.com/
